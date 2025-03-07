@@ -1,0 +1,75 @@
+名字: 自动发布
+
+在:
+推:
+标签:
+      - '*'
+
+工作:
+
+建筑:
+    runs-on: ubuntu-latest
+权限:
+内容: 写
+步骤:
+      - 用途: actions/checkout@v4.2.2
+与:
+          fetch-tags: 真正的
+          fetch-depth: 0
+
+query为空- 名字: 设置JDK 21
+用途: actions/setup-java@v4.5.0
+与:
+          java-version: '21'
+分布: 'temurin'
+
+      - 名字: 修正分级权限
+跑: chmod +x ./gradlew
+
+      - 名字: 安装锻造环境
+跑: ./gradlew setup -Prun_number=${{ github.run_number }} -Prelease=true
+
+      - 名字: 获取版本
+跑: 回声"CLEANROOM_VERSION=$(cat version.txt)">> $GITHUB_ENV
+
+      - 名字: 停止Gradle守护进程
+跑: 停
+
+      - 名字: 造罐子
+跑: ./gradlew installerJar -Prun_number=${{ github.run_number }} -Prelease=true
+
+      - 名字: 再次停止Gradle守护进程
+跑: 停
+
+      - 名字: 发布到maven进行mod开发
+跑: ./gradlew publish -PoutlandUsername=${{ secrets.MAVEN_USERNAME }} -PoutlandPassword="${{ secrets.MAVEN_PASSWORD }}"-Prun_number=${{ github.run_number }} -Prelease=true
+
+      - 名字: 结帐
+用途: actions/checkout@v4.2.2
+与:
+仓库: CleanroomMC/CleanroomMMC
+路径: 最大物质条件（mmc）
+
+      - 名字: 安装python
+用途: actions/setup-python@v5.3.0
+与:
+          python-version: '3.12'
+
+      - 名字: 安装脚本依赖项
+跑: |
+python-m pip install-升级pip
+pip install -r mmc/requirements.txt
+
+      - 名字: 生成MMC包
+跑: python main.py
+        working-directory: ./mmc
+env:
+          PATH_TO_EXIST_INSTALLER: ../projects/cleanroom/build/libs/cleanroom-${{ env.CLEANROOM_VERSION }}-installer.jar
+
+      - 名字: 复制MMC包
+跑: cp mmc/build/CleanroomMMC.zip ./projects/cleanroom/build/libs/Cleanroom-MMC-instance-${{ env.CLEANROOM_VERSION }}.zip
+
+      - 用途: ncipollo/release-action@v1.14.0
+与:
+文物: "projects/cleanroom/build/libs/*"
+generateReleaseNotes: 真正的
